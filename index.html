@@ -1,1 +1,581 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#000000">
+  <link rel="manifest" href="./manifest.json">
+  <title>Painel ZenPad — Autocarros STCP</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+    }
+
+    body {
+      background: #000000;
+      color: #ffffff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      height: 100vh;
+      width: 100vw;
+      padding: 12px;
+      overflow: hidden;
+      user-select: none;
+      -webkit-user-select: none;
+      position: relative;
+    }
+
+    .header-bar {
+      display: -webkit-flex;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      height: 38px;
+      margin-bottom: 10px;
+      gap: 8px;
+    }
+
+    .status-pill {
+      font-size: 0.8rem;
+      color: #b0b0b5;
+      background: #1c1c1e;
+      padding: 6px 12px;
+      border-radius: 12px;
+      border: 1px solid #2c2c2e;
+      letter-spacing: 0.2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      min-width: 0;
+    }
+
+    .controls {
+      display: -webkit-flex;
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .btn {
+      background: #1c1c1e;
+      color: #0a84ff;
+      border: 1px solid #2c2c2e;
+      border-radius: 10px;
+      padding: 7px 12px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .btn:active {
+      background: #2c2c2e;
+      color: #ffffff;
+    }
+
+    /* Float layout avoids CSS Grid and flex-gap dependencies on older tablet browsers. */
+    .main-container {
+      width: 100%;
+      height: calc(100vh - 72px);
+      overflow: hidden;
+    }
+
+    .bus-stop-block {
+      float: left;
+      width: calc(50% - 8px);
+      height: calc(50% - 8px);
+      margin: 4px;
+      padding: 12px;
+      background: #171719;
+      border: 1px solid #2c2c2e;
+      border-radius: 16px;
+      display: -webkit-flex;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .bus-stop-header {
+      display: -webkit-flex;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #ffb547;
+      font-weight: 800;
+      font-size: 1.15rem;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #333336;
+      margin-bottom: 8px;
+      flex-shrink: 0;
+    }
+
+    .bus-stop-meta {
+      color: #8e8e93;
+      font-size: 0.7rem;
+      font-weight: normal;
+    }
+
+    .bus-list {
+      display: -webkit-flex;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+      scrollbar-color: #3a3a3c transparent;
+    }
+
+    .bus-row {
+      display: table;
+      table-layout: fixed;
+      width: 100%;
+      min-height: 46px;
+      margin-bottom: 6px;
+      padding: 0;
+      background: #222224;
+      border: 1px solid #333336;
+      border-radius: 10px;
+      box-sizing: border-box;
+      flex-shrink: 0;
+    }
+
+    .bus-line-badge {
+      display: table-cell;
+      width: 54px;
+      vertical-align: middle;
+      background: #ffb547;
+      color: #000000;
+      font-weight: 800;
+      padding: 7px 4px;
+      border-radius: 7px;
+      font-size: 1.2rem;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .bus-dest-wrap {
+      display: table-cell;
+      vertical-align: middle;
+      padding: 6px 8px;
+      overflow: hidden;
+    }
+
+    .bus-dest {
+      font-size: 0.88rem;
+      color: #f2f2f7;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .bus-direction {
+      color: #8e8e93;
+      font-size: 0.68rem;
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .bus-arrival {
+      display: table-cell;
+      width: 86px;
+      vertical-align: middle;
+      text-align: right;
+      white-space: nowrap;
+      padding: 6px 8px 6px 2px;
+      overflow: visible;
+    }
+
+    .bus-time-text {
+      display: block;
+      color: #4ade80;
+      font-weight: 800;
+      font-size: 1.35rem;
+      line-height: 1.2;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .bus-clock-time {
+      color: #8e8e93;
+      font-size: 0.68rem;
+      margin-top: 2px;
+    }
+
+    .bus-live-dot {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #4ade80;
+      margin-right: 4px;
+      vertical-align: 1px;
+    }
+
+    .bus-delay {
+      color: #ffb547;
+      font-size: 0.68rem;
+      margin-top: 2px;
+    }
+
+    .status-msg {
+      color: #8e8e93;
+      font-size: 0.85rem;
+      line-height: 1.4;
+      text-align: center;
+      padding: 12px 8px;
+      font-style: italic;
+      display: -webkit-flex;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      min-height: 54px;
+    }
+
+    .bus-stop-footer {
+      border-top: 1px solid #333336;
+      margin-top: 6px;
+      padding-top: 6px;
+      display: -webkit-flex;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .bus-source {
+      color: #8e8e93;
+      font-size: 0.65rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .bus-source strong {
+      color: #4ade80;
+      font-weight: 700;
+    }
+
+    .bus-official-link {
+      color: #0a84ff;
+      text-decoration: none;
+      font-size: 0.68rem;
+      font-weight: 650;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .bus-official-link:active {
+      color: #ffffff;
+    }
+
+    @media (max-width: 700px) {
+      body { padding: 8px; }
+      .header-bar { height: 36px; margin-bottom: 8px; }
+      .status-pill { font-size: 0.68rem; padding: 5px 8px; }
+      .btn { font-size: 0.72rem; padding: 6px 8px; }
+      .main-container { height: calc(100vh - 60px); }
+      .bus-stop-block { width: calc(50% - 6px); height: calc(50% - 6px); margin: 3px; padding: 8px; }
+      .bus-stop-header { font-size: 0.95rem; padding-bottom: 6px; margin-bottom: 6px; }
+      .bus-line-badge { width: 42px; font-size: 1rem; }
+      .bus-arrival { width: 68px; padding-right: 5px; }
+      .bus-dest-wrap { padding-left: 5px; padding-right: 4px; }
+      .bus-dest { font-size: 0.76rem; }
+      .bus-direction { font-size: 0.6rem; }
+      .bus-time-text { font-size: 1.05rem; }
+      .bus-stop-footer { gap: 4px; }
+      .bus-source, .bus-official-link { font-size: 0.58rem; }
+    }
+
+    @media (max-height: 520px) {
+      .bus-stop-block { padding: 7px; }
+      .bus-stop-header { font-size: 0.95rem; padding-bottom: 5px; margin-bottom: 5px; }
+      .bus-row { min-height: 39px; margin-bottom: 4px; }
+      .bus-line-badge { font-size: 1rem; }
+      .bus-time-text { font-size: 1.05rem; }
+      .bus-stop-footer { margin-top: 4px; padding-top: 4px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header-bar">
+    <div class="status-pill" id="last-update">A iniciar consultas STCP…</div>
+    <div class="controls">
+      <button class="btn" type="button" onclick="toggleFullscreen()">⛶ Ecrã inteiro</button>
+      <button class="btn" type="button" onclick="refreshAllData()">↻ Atualizar</button>
+    </div>
+  </div>
+
+  <main class="main-container" aria-label="Chegadas de autocarros STCP">
+    <section class="bus-stop-block" aria-label="Paragem FLUN1">
+      <div class="bus-stop-header"><span>FLUN1</span><span class="bus-stop-meta">STCP</span></div>
+      <div class="bus-list" id="stop-flun1-list"><div class="status-msg">A consultar chegadas…</div></div>
+      <div class="bus-stop-footer">
+        <span class="bus-source" id="stop-flun1-status">STCP <strong>●</strong> a aguardar dados</span>
+        <a class="bus-official-link" href="https://stcp.pt/pt/paragem?stop=FLUN1" target="_blank" rel="noopener">STCP ↗</a>
+      </div>
+    </section>
+
+    <section class="bus-stop-block" aria-label="Paragem FLUN2">
+      <div class="bus-stop-header"><span>FLUN2</span><span class="bus-stop-meta">STCP</span></div>
+      <div class="bus-list" id="stop-flun2-list"><div class="status-msg">A consultar chegadas…</div></div>
+      <div class="bus-stop-footer">
+        <span class="bus-source" id="stop-flun2-status">STCP <strong>●</strong> a aguardar dados</span>
+        <a class="bus-official-link" href="https://stcp.pt/pt/paragem?stop=FLUN2" target="_blank" rel="noopener">STCP ↗</a>
+      </div>
+    </section>
+
+    <section class="bus-stop-block" aria-label="Paragem FLU1">
+      <div class="bus-stop-header"><span>FLU1</span><span class="bus-stop-meta">STCP</span></div>
+      <div class="bus-list" id="stop-flu1-list"><div class="status-msg">A consultar chegadas…</div></div>
+      <div class="bus-stop-footer">
+        <span class="bus-source" id="stop-flu1-status">STCP <strong>●</strong> a aguardar dados</span>
+        <a class="bus-official-link" href="https://stcp.pt/pt/paragem?stop=FLU1" target="_blank" rel="noopener">STCP ↗</a>
+      </div>
+    </section>
+
+    <section class="bus-stop-block" aria-label="Paragem FLU3">
+      <div class="bus-stop-header"><span>FLU3</span><span class="bus-stop-meta">STCP</span></div>
+      <div class="bus-list" id="stop-flu3-list"><div class="status-msg">A consultar chegadas…</div></div>
+      <div class="bus-stop-footer">
+        <span class="bus-source" id="stop-flu3-status">STCP <strong>●</strong> a aguardar dados</span>
+        <a class="bus-official-link" href="https://stcp.pt/pt/paragem?stop=FLU3" target="_blank" rel="noopener">STCP ↗</a>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    function toggleFullscreen() {
+      var elem = document.documentElement;
+      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        if (elem.requestFullscreen) {
+          elem.requestFullscreen();
+        } else if (elem.webkitRequestFullscreen) {
+          elem.webkitRequestFullscreen();
+        }
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        }
+      }
+    }
+
+    var BUS_PROXY_URL = "https://stcp-proxy.onrender.com";
+    var BUS_REFRESH_MS = 60000;
+    var BUS_STOP_CODES = ["FLUN1", "FLUN2", "FLU1", "FLU3"];
+
+    function escapeHtml(value) {
+      return String(value == null ? "" : value).replace(/[&<>"']/g, function(ch) {
+        return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" })[ch];
+      });
+    }
+
+    function firstBusField(bus, names) {
+      var i;
+      for (i = 0; i < names.length; i++) {
+        var value = bus && bus[names[i]];
+        if (value !== null && value !== undefined && String(value).trim() !== "") return value;
+      }
+      return null;
+    }
+
+    function extractBusMinutes(bus) {
+      var value = firstBusField(bus, [
+        "arrival_minutes", "minutes", "in_minutes", "waiting_minutes", "wait_minutes",
+        "eta_minutes", "estimated_minutes", "arrivalMinutes", "waitingMinutes",
+        "waitMinutes", "etaMinutes", "minutesUntilArrival", "time_to_arrival",
+        "timeToArrival", "waiting_time", "waitingTime", "wait_time", "waitTime"
+      ]);
+      if (value !== null) return value;
+      var nested = firstBusField(bus, ["eta", "arrival", "prediction", "estimate"]);
+      if (nested && typeof nested === "object") {
+        return firstBusField(nested, ["minutes", "arrival_minutes", "waiting_minutes", "wait_minutes", "eta_minutes", "waitingTime", "waiting_time", "timeToArrival"]);
+      }
+      return null;
+    }
+
+    function extractBusArrivalTime(bus) {
+      return firstBusField(bus, [
+        "estimated_arrival_time", "arrival_time", "estimatedArrivalTime", "arrivalTime",
+        "estimatedTimeOfArrival", "estimated_time_of_arrival", "expected_arrival",
+        "expectedArrival", "eta_time", "etaTime", "time", "arrival"
+      ]);
+    }
+
+    function formatArrivalTime(value) {
+      if (!value || typeof value === "object") return "";
+      var raw = String(value).trim();
+      var hm = raw.match(/(\d{1,2}):(\d{2})/);
+      if (hm) return ("0" + Number(hm[1])).slice(-2) + ":" + hm[2];
+      var d = new Date(value);
+      if (isNaN(d.getTime())) return "";
+      return ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
+    }
+
+    function minutesLabel(minutes, fallbackTime) {
+      if (minutes !== null && minutes !== undefined) {
+        var raw = String(minutes).trim();
+        if (/^(agora|now|a passar|chegou)$/i.test(raw)) return "Agora";
+        var numeric = Number(raw);
+        if (!isNaN(numeric)) return numeric <= 0 ? "Agora" : Math.max(1, Math.round(numeric)) + " min";
+        var match = raw.match(/-?\d+(?:[.,]\d+)?/);
+        if (match) {
+          var parsed = Number(match[0].replace(",", "."));
+          if (!isNaN(parsed)) return parsed <= 0 ? "Agora" : Math.max(1, Math.round(parsed)) + " min";
+        }
+      }
+
+      if (fallbackTime && typeof fallbackTime !== "object") {
+        var target = new Date(fallbackTime);
+        if (!isNaN(target.getTime()) && String(fallbackTime).indexOf(":") === -1) {
+          var diff = Math.round((target.getTime() - Date.now()) / 60000);
+          return diff <= 0 ? "Agora" : diff + " min";
+        }
+        var hm = String(fallbackTime).match(/(\d{1,2}):(\d{2})/);
+        if (hm) {
+          var now = new Date();
+          var target2 = new Date(now);
+          target2.setHours(Number(hm[1]), Number(hm[2]), 0, 0);
+          if (target2.getTime() < now.getTime() - 60000) target2.setDate(target2.getDate() + 1);
+          var diff2 = Math.round((target2.getTime() - now.getTime()) / 60000);
+          return diff2 <= 0 ? "Agora" : diff2 + " min";
+        }
+      }
+      return "--";
+    }
+
+    function sortMinutes(bus) {
+      var value = extractBusMinutes(bus);
+      if (value === null || value === undefined) return 999999;
+      var raw = String(value).trim();
+      if (/^(agora|now|a passar|chegou)$/i.test(raw)) return 0;
+      var match = raw.match(/-?\d+(?:[.,]\d+)?/);
+      if (!match) return 999999;
+      var number = Number(match[0].replace(",", "."));
+      return isNaN(number) ? 999999 : number;
+    }
+
+    function buildBusUrl(stopCode) {
+      return BUS_PROXY_URL.replace(/\/+$/, "") + "/?stop=" + encodeURIComponent(stopCode) + "&v=" + Date.now();
+    }
+
+    function renderBusStatus(stopCode, text) {
+      var el = document.getElementById("stop-" + stopCode.toLowerCase() + "-status");
+      if (el) el.innerHTML = "STCP <strong>●</strong> " + escapeHtml(text);
+    }
+
+    function getArrivals(data) {
+      if (Array.isArray(data)) return data.slice();
+      if (data && Array.isArray(data.arrivals)) return data.arrivals.slice();
+      if (data && data.data && Array.isArray(data.data.arrivals)) return data.data.arrivals.slice();
+      if (data && data.data && Array.isArray(data.data)) return data.data.slice();
+      return [];
+    }
+
+    function renderBusRows(stopCode, data) {
+      var id = stopCode.toLowerCase();
+      var list = document.getElementById("stop-" + id + "-list");
+      var arrivals = getArrivals(data);
+      arrivals.sort(function(a, b) { return sortMinutes(a) - sortMinutes(b); });
+      arrivals = arrivals.slice(0, 6);
+
+      if (!arrivals.length) {
+        list.innerHTML = '<div class="status-msg">Sem chegadas em tempo real de momento.<br>A STCP pode não ter veículos próximos.</div>';
+        renderBusStatus(stopCode, "sem chegadas agora");
+        return;
+      }
+
+      var rows = "";
+      arrivals.forEach(function(bus) {
+        var rawRoute = bus.route_short_name || bus.route_id || bus.line || (bus.trip_id ? String(bus.trip_id).split("_")[0] : "—");
+        var route = String(rawRoute || "—");
+        var destination = bus.trip_headsign || bus.destination || bus.headsign || "Destino não indicado";
+        var mins = extractBusMinutes(bus);
+        var rawArrivalTime = extractBusArrivalTime(bus);
+        var clockTime = formatArrivalTime(rawArrivalTime);
+        var delay = Number(bus.delay_minutes);
+        var delayHtml = "";
+        if (!isNaN(delay) && Math.abs(delay) >= 1) {
+          var sign = delay > 0 ? "+" : "−";
+          delayHtml = '<div class="bus-delay">Atraso ' + sign + Math.abs(Math.round(delay)) + ' min</div>';
+        }
+
+        rows += '<div class="bus-row">' +
+          '<div class="bus-line-badge">' + escapeHtml(route) + '</div>' +
+          '<div class="bus-dest-wrap">' +
+            '<div class="bus-dest">' + escapeHtml(destination) + '</div>' +
+            '<div class="bus-direction">' + (clockTime ? 'Chegada prevista às ' + escapeHtml(clockTime) : 'Tempo real STCP') + '</div>' +
+          '</div>' +
+          '<div class="bus-arrival"><div class="bus-time-text"><span class="bus-live-dot"></span>' + escapeHtml(minutesLabel(mins, rawArrivalTime)) + '</div>' + delayHtml + '</div>' +
+        '</div>';
+      });
+      list.innerHTML = rows;
+
+      var lastUpdated = data && data.last_updated ? new Date(data.last_updated) : null;
+      var stamp = (lastUpdated && !isNaN(lastUpdated.getTime()))
+        ? ("atualizado " + ("0" + lastUpdated.getHours()).slice(-2) + ":" + ("0" + lastUpdated.getMinutes()).slice(-2))
+        : "dados recebidos";
+      renderBusStatus(stopCode, stamp);
+    }
+
+    function fetchBusStopData(stopCode) {
+      var list = document.getElementById("stop-" + stopCode.toLowerCase() + "-list");
+      renderBusStatus(stopCode, "a consultar…");
+      var xhr = new XMLHttpRequest();
+      xhr.open("GET", buildBusUrl(stopCode), true);
+      xhr.timeout = 12000;
+      xhr.onload = function() {
+        if (xhr.status >= 200 && xhr.status < 400) {
+          try {
+            renderBusRows(stopCode, JSON.parse(xhr.responseText));
+          } catch (e) {
+            list.innerHTML = '<div class="status-msg">Resposta inválida da fonte de transportes.</div>';
+            renderBusStatus(stopCode, "resposta inválida");
+          }
+        } else {
+          list.innerHTML = '<div class="status-msg">Não foi possível consultar esta paragem.</div>';
+          renderBusStatus(stopCode, "erro " + xhr.status);
+        }
+      };
+      xhr.onerror = function() {
+        list.innerHTML = '<div class="status-msg">Erro de ligação.<br>O proxy não respondeu ou a ligação foi bloqueada.</div>';
+        renderBusStatus(stopCode, "ligação indisponível");
+      };
+      xhr.ontimeout = function() {
+        list.innerHTML = '<div class="status-msg">Tempo limite excedido ao consultar a paragem.</div>';
+        renderBusStatus(stopCode, "tempo limite");
+      };
+      xhr.send();
+    }
+
+    function refreshAllData() {
+      var now = new Date();
+      var timeStr = ("0" + now.getHours()).slice(-2) + ":" + ("0" + now.getMinutes()).slice(-2);
+      document.getElementById("last-update").innerHTML = "Consulta iniciada às " + timeStr;
+      BUS_STOP_CODES.forEach(function(stopCode) { fetchBusStopData(stopCode); });
+    }
+
+    refreshAllData();
+    setInterval(refreshAllData, BUS_REFRESH_MS);
+  </script>
+</body>
+</html>
 
